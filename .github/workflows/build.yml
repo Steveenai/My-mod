@@ -1,6 +1,6 @@
 name: Build Serpent Addon
 
-"on":
+on:
   workflow_dispatch:
   push:
 
@@ -23,19 +23,26 @@ jobs:
         with:
           gradle-version: "8.8"
 
-              - name: Extract addon ZIP
+      - name: Find and extract ZIP
         run: |
-          ZIP=$(find . -maxdepth 1 -type f -iname "*.zip" | head -n 1)
+          ZIP=$(find . -maxdepth 2 -type f -name "*.zip" | head -n 1)
           echo "ZIP trouvé : $ZIP"
-          unzip -q "$ZIP"
+          unzip -q "$ZIP" -d extracted
 
-          PROJECT=$(find . -name "build.gradle" -print -quit | xargs dirname)
-          echo "Projet trouvé : $PROJECT"
+      - name: Find Gradle project
+        run: |
+          PROJECT=$(find extracted -name "build.gradle" -o -name "build.gradle.kts" | head -n 1)
+          PROJECT_DIR=$(dirname "$PROJECT")
+          echo "Projet trouvé : $PROJECT_DIR"
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
-          cd "$PROJECT"
+      - name: Build
+        run: |
+          cd "$PROJECT_DIR"
           gradle build --no-daemon
-      - name: Upload addon JAR
+
+      - name: Upload JAR
         uses: actions/upload-artifact@v4
         with:
           name: serpent-addon
-          path: KimetsuCraft_Serpent_Beta5/build/libs/*.jar
+          path: "${{ env.PROJECT_DIR }}/build/libs/*.jar"

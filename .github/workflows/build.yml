@@ -23,12 +23,17 @@ jobs:
         with:
           gradle-version: "8.8"
 
-      - name: Extract addon ZIP
+              - name: Extract addon ZIP
         run: |
-          unzip -q KimetsuCraft_Serpent_Beta5_GitHub_Ready.zip
-          cd KimetsuCraft_Serpent_Beta5
-          gradle build --no-daemon
+          ZIP=$(find . -maxdepth 1 -type f -iname "*.zip" | head -n 1)
+          echo "ZIP trouvé : $ZIP"
+          unzip -q "$ZIP"
 
+          PROJECT=$(find . -name "build.gradle" -print -quit | xargs dirname)
+          echo "Projet trouvé : $PROJECT"
+
+          cd "$PROJECT"
+          gradle build --no-daemon
       - name: Upload addon JAR
         uses: actions/upload-artifact@v4
         with:

@@ -25,20 +25,31 @@ jobs:
         with:
           gradle-version: "8.8"
 
-      - name: Check project files
+      - name: Find Gradle project
         run: |
-          echo "=== Fichiers du projet ==="
-          ls -la
-          echo "=== build.gradle ==="
-          ls -l build.gradle settings.gradle 2>/dev/null || true
+          echo "Recherche de build.gradle..."
+          PROJECT=$(find . -name "build.gradle" -type f | head -n 1)
+
+          if [ -z "$PROJECT" ]; then
+            echo "ERREUR : build.gradle introuvable."
+            find . -maxdepth 4 -type f | sort
+            exit 1
+          fi
+
+          PROJECT_DIR=$(dirname "$PROJECT")
+
+          echo "Projet trouvé : $PROJECT_DIR"
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
       - name: Build Emperor Eye Revemp
-        run: gradle build --no-daemon --stacktrace
+        run: |
+          cd "$PROJECT_DIR"
+          gradle build --no-daemon --stacktrace
 
       - name: Upload Emperor Eye Revemp JAR
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: emperor-eye-revemp
-          path: build/libs/*.jar
+          path: "${{ env.PROJECT_DIR }}/build/libs/*.jar"
           if-no-files-found: error

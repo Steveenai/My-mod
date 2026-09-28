@@ -25,20 +25,36 @@ jobs:
         with:
           gradle-version: "8.8"
 
-      - name: Find Gradle project
+      - name: Extract project
         run: |
-          echo "Recherche de build.gradle..."
-          PROJECT=$(find . -name "build.gradle" -type f | head -n 1)
+          ZIP=$(find . -maxdepth 1 -type f -name "*.zip" | head -n 1)
 
-          if [ -z "$PROJECT" ]; then
-            echo "ERREUR : build.gradle introuvable."
-            find . -maxdepth 4 -type f | sort
+          if [ -z "$ZIP" ]; then
+            echo "ERREUR : aucun ZIP trouvé."
             exit 1
           fi
 
-          PROJECT_DIR=$(dirname "$PROJECT")
+          echo "ZIP trouvé : $ZIP"
 
-          echo "Projet trouvé : $PROJECT_DIR"
+          mkdir -p project
+          unzip -q "$ZIP" -d project
+
+          echo "=== Projet extrait ==="
+          find project -maxdepth 3 -type f | sort
+
+      - name: Find Gradle project
+        run: |
+          BUILD=$(find project -name "build.gradle" -type f | head -n 1)
+
+          if [ -z "$BUILD" ]; then
+            echo "ERREUR : build.gradle introuvable après extraction."
+            find project -type f | sort
+            exit 1
+          fi
+
+          PROJECT_DIR=$(dirname "$BUILD")
+
+          echo "Projet Gradle : $PROJECT_DIR"
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
       - name: Build Emperor Eye Revemp
@@ -46,7 +62,7 @@ jobs:
           cd "$PROJECT_DIR"
           gradle build --no-daemon --stacktrace
 
-      - name: Upload Emperor Eye Revemp JAR
+      - name: Upload JAR
         if: success()
         uses: actions/upload-artifact@v4
         with:

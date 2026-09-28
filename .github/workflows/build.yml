@@ -39,6 +39,19 @@ jobs:
           mkdir -p project
           unzip -q "$ZIP" -d project
 
+          BUILD=$(find project -name "build.gradle" -type f | head -n 1)
+
+          if [ -z "$BUILD" ]; then
+            echo "ERREUR : build.gradle introuvable."
+            exit 1
+          fi
+
+          echo "build.gradle trouvé : $BUILD"
+
+          sed -i '/^publishing {/d' "$BUILD"
+
+          echo "Bloc publishing supprimé."
+
           echo "=== Projet extrait ==="
           find project -maxdepth 3 -type f | sort
 
@@ -48,7 +61,6 @@ jobs:
 
           if [ -z "$BUILD" ]; then
             echo "ERREUR : build.gradle introuvable après extraction."
-            find project -type f | sort
             exit 1
           fi
 

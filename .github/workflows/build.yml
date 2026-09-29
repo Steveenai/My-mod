@@ -34,8 +34,6 @@ jobs:
             exit 1
           fi
 
-          echo "ZIP trouvé : $ZIP"
-
           mkdir -p project
           unzip -q "$ZIP" -d project
 
@@ -48,28 +46,13 @@ jobs:
 
           echo "build.gradle trouvé : $BUILD"
 
-          sed -i '/^publishing {/d' "$BUILD"
-
-          echo "Bloc publishing supprimé."
-
-          echo "=== Projet extrait ==="
-          find project -maxdepth 3 -type f | sort
-
       - name: Find Gradle project
         run: |
           BUILD=$(find project -name "build.gradle" -type f | head -n 1)
-
-          if [ -z "$BUILD" ]; then
-            echo "ERREUR : build.gradle introuvable après extraction."
-            exit 1
-          fi
-
           PROJECT_DIR=$(dirname "$BUILD")
-
-          echo "Projet Gradle : $PROJECT_DIR"
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
-      - name: Build Emperor Eye Revemp
+      - name: Build JAR
         run: |
           cd "$PROJECT_DIR"
           gradle build --no-daemon --stacktrace
@@ -79,5 +62,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: emperor-eye-revemp
-          path: "${{ env.PROJECT_DIR }}/build/libs/*.jar"
-          if-no-files-found: error
+          path: "${{ env.PROJECT_DIR }}/

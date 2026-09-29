@@ -57,9 +57,10 @@ jobs:
           cd "$PROJECT_DIR"
           gradle build --no-daemon --stacktrace
 
-      - name: Upload JAR
+      -       - name: Upload JAR
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: emperor-eye-revemp
-          path: "${{ env.PROJECT_DIR }}/
+          path: "${{ env.PROJECT_DIR }}/build/libs/*.jar"
+          if-no-files-found: error

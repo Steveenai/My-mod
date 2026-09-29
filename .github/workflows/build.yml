@@ -27,10 +27,12 @@ jobs:
 
       - name: Extract project
         run: |
+          set -e
+
           ZIP=$(find . -maxdepth 1 -type f -name "*.zip" | head -n 1)
 
           if [ -z "$ZIP" ]; then
-            echo "ERREUR : aucun ZIP trouvé."
+            echo "ERREUR : aucun ZIP trouvé à la racine."
             exit 1
           fi
 
@@ -39,32 +41,51 @@ jobs:
           mkdir -p project
           unzip -q "$ZIP" -d project
 
-          BUILD=$(find project -name "build.gradle" -type f | head -n 1)
+          PROJECT_DIR="project/EmperorEyeRevemp-0.1"
 
-          if [ -z "$BUILD" ]; then
-            echo "ERREUR : build.gradle introuvable."
+          if [ ! -f "$PROJECT_DIR/build.gradle" ]; then
+            echo "ERREUR : build.gradle introuvable dans $PROJECT_DIR"
+            echo "Contenu trouvé :"
+            find project -maxdepth 4 -type f | sort
             exit 1
           fi
 
-          echo "build.gradle trouvé : $BUILD"
+          echo "Projet trouvé : $PROJECT_DIR"
 
-          sed -i '/^publishing {/d' "$BUILD"
+          echo "=== Contenu du projet ==="
+          ls -la "$PROJECT_DIR"
 
-      - name: Find Gradle project
-        run: |
-          BUILD=$(find project -name "build.gradle" -type f | head -n 1)
-          PROJECT_DIR=$(dirname "$BUILD")
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+
+      - name: Make Gradle executable
+        run: |
+          chmod +x "$PROJECT_DIR/gradlew"
 
       - name: Build JAR
         run: |
           cd "$PROJECT_DIR"
-          gradle build --no-daemon --stacktrace
+          ./gradlew build --no-daemon --stacktrace
+
+      - name: Show build outputs
+        if: always()
+        run: |
+          echo "=== PROJECT_DIR ==="
+          echo "$PROJECT_DIR"
+
+          echo "=== BUILD/LIBS ==="
+          if [ -d "$PROJECT_DIR/build/libs" ]; then
+            ls -lah "$PROJECT_DIR/build/libs"
+          else
+            echo "build/libs n'existe pas."
+          fi
+
+          echo "=== TOUS LES JAR ==="
+          find "$PROJECT_DIR" -type f -name "*.jar" -print || true
 
       - name: Upload JAR
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: emperor-eye-revemp
+          name: EmperorEyeRevemp-JAR
           path: "${{ env.PROJECT_DIR }}/build/libs/*.jar"
           if-no-files-found: error

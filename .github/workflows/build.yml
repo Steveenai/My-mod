@@ -34,6 +34,8 @@ jobs:
             exit 1
           fi
 
+          echo "ZIP trouvé : $ZIP"
+
           mkdir -p project
           unzip -q "$ZIP" -d project
 
@@ -46,6 +48,8 @@ jobs:
 
           echo "build.gradle trouvé : $BUILD"
 
+          sed -i '/^publishing {/d' "$BUILD"
+
       - name: Find Gradle project
         run: |
           BUILD=$(find project -name "build.gradle" -type f | head -n 1)
@@ -57,7 +61,7 @@ jobs:
           cd "$PROJECT_DIR"
           gradle build --no-daemon --stacktrace
 
-      -       - name: Upload JAR
+      - name: Upload JAR
         if: success()
         uses: actions/upload-artifact@v4
         with:

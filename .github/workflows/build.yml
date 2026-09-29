@@ -1,13 +1,72 @@
+name: Build Emperor Eye Revemp
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Gradle 8.8
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.8"
+
+      - name: Extract project
+        run: |
+          set -e
+
+          ZIP=$(find . -maxdepth 1 -type f -name "*.zip" | head -n 1)
+
+          if [ -z "$ZIP" ]; then
+            echo "ERREUR : aucun ZIP trouvé."
+            exit 1
+          fi
+
+          echo "ZIP trouvé : $ZIP"
+
+          mkdir -p project
+          unzip -q "$ZIP" -d project
+
+          BUILD=$(find project -path "*/EmperorEyeRevemp-0.1/build.gradle" -type f | head -n 1)
+
+          if [ -z "$BUILD" ]; then
+            echo "ERREUR : projet EmperorEyeRevemp-0.1 introuvable."
+            find project -name "build.gradle" -print
+            exit 1
+          fi
+
+          PROJECT_DIR=$(dirname "$BUILD")
+
+          echo "Projet trouvé : $PROJECT_DIR"
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+
+          echo "=== build.gradle actuel ==="
+          nl -ba "$PROJECT_DIR/build.gradle" | sed -n '1,100p'
+
       - name: Make Gradle executable
         run: |
           chmod +x "$PROJECT_DIR/gradlew"
 
       - name: Fix local dependencies
         run: |
-          sed -i "s/implementation fg.deobf(files(/implementation files(/g" "$PROJECT_DIR/build.gradle"
+          sed -i -E "s/fg\.deobf\(files\((.*)\)\)/files(\1)/" "$PROJECT_DIR/build.gradle"
 
-          echo "=== Dépendances corrigées ==="
-          grep -n "implementation files" "$PROJECT_DIR/build.gradle"
+          echo "=== Dépendances après correction ==="
+          grep -n "implementation" "$PROJECT_DIR/build.gradle"
 
       - name: Build JAR
         run: |

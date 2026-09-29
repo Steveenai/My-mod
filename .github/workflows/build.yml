@@ -44,7 +44,7 @@ jobs:
           BUILD=$(find project -path "*/EmperorEyeRevemp-0.1/build.gradle" -type f | head -n 1)
 
           if [ -z "$BUILD" ]; then
-            echo "ERREUR : projet EmperorEyeRevemp-0.1 introuvable."
+            echo "ERREUR : build.gradle introuvable."
             find project -name "build.gradle" -print
             exit 1
           fi
@@ -52,47 +52,41 @@ jobs:
           PROJECT_DIR=$(dirname "$BUILD")
 
           echo "Projet trouvé : $PROJECT_DIR"
+
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
-          echo "=== build.gradle actuel ==="
-          nl -ba "$PROJECT_DIR/build.gradle" | sed -n '1,100p'
+          echo "=== CONTENU DU PROJET ==="
+          ls -la "$PROJECT_DIR"
 
       - name: Make Gradle executable
         run: |
           chmod +x "$PROJECT_DIR/gradlew"
 
-      - name: Fix local dependencies
+      - name: Fix build.gradle
         run: |
-          sed -i -E "s/fg\.deobf\(files\((.*)\)\)/files(\1)/" "$PROJECT_DIR/build.gradle"
+          set -e
 
-          echo "=== Dépendances après correction ==="
-          grep -n "implementation" "$PROJECT_DIR/build.gradle"
+          echo "=== build.gradle AVANT correction ==="
+          nl -ba "$PROJECT_DIR/build.gradle" | sed -n '1,80p'
+
+          # Supprime le bloc publishing qui provoque
+          # l'erreur "Cannot invoke method repositories() on null object"
+          sed -i '/^[[:space:]]*publishing[[:space:]]*{/d' "$PROJECT_DIR/build.gradle"
+
+          echo "=== build.gradle APRÈS correction ==="
+          nl -ba "$PROJECT_DIR/build.gradle" | sed -n '1,80p'
 
       - name: Build JAR
         run: |
+          set -e
+
           cd "$PROJECT_DIR"
+
           ./gradlew build --no-daemon --stacktrace
 
       - name: Show build outputs
         if: always()
         run: |
-          echo "=== PROJECT_DIR ==="
-          echo "$PROJECT_DIR"
-
-          echo "=== BUILD/LIBS ==="
-          if [ -d "$PROJECT_DIR/build/libs" ]; then
-            ls -lah "$PROJECT_DIR/build/libs"
-          else
-            echo "build/libs n'existe pas."
-          fi
-
-          echo "=== TOUS LES JAR ==="
-          find "$PROJECT_DIR" -type f -name "*.jar" -print || true
-
-      - name: Upload JAR
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: EmperorEyeRevemp-JAR
-          path: "${{ env.PROJECT_DIR }}/build/libs/*.jar"
-          if-no-files-found: error
+          echo "================================"
+          echo "PROJECT_DIR"
+         
